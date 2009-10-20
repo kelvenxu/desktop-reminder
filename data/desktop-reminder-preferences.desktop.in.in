@@ -1,0 +1,14 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Desktop Reminder Preferences
+Name[en_GB]=Desktop Reminder Preferences
+Name[zh_CN]=小精灵桌面提醒器首选项
+Comment=Desktop Remainder Preferences
+Comment[zh_CN]=配置小精灵桌面提醒器
+Exec=desktop-reminder-preferences
+Terminal=false
+StartupNotify=true
+Type=Application
+Icon=desktop-reminder.png
+Categories=Settings;
+X-Ubuntu-Gettext-Domain=desktop-reminder

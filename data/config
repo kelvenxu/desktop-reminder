@@ -1,0 +1,16 @@
+
+[default]
+font=文泉驿正黑 Bold 16
+message=Hello, I'am desktop reminder
+display=true
+
+[color]
+red=60092
+green=18907
+blue=15058
+
+[position]
+x = 200
+y = 10
+
+
