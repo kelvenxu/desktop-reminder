@@ -22,8 +22,24 @@
  * Boston, MA 02111-1307, USA.
  * */
 
+#include "config.h"
 #include <gtk/gtk.h>
+#include <string.h>
 #include "desktop-reminder.h"
+#include "bacon-message-connection.h"
+
+static void
+message_connection_receive_cb(const char *msg, DesktopReminder *dr)
+{
+	printf("msg: %s\n", msg);
+	if(strcmp(msg, "quit") == 0)
+	{
+		bacon_message_connection_free(dr->conn);
+		dr->conn = NULL;
+		g_object_unref(dr);
+		gtk_main_quit();
+	}
+}
 
 static gboolean 
 timer_cb(DesktopReminder *reminder)
@@ -54,11 +70,24 @@ int main(int argc, char *argv[])
 	gtk_init(&argc, &argv);
 
 	DesktopReminder *reminder = desktop_reminder_new();
+	reminder->conn = bacon_message_connection_new(GETTEXT_PACKAGE);
+	if(!bacon_message_connection_get_is_server(reminder->conn))
+	{
+		bacon_message_connection_free(reminder->conn);
+		reminder->conn = NULL;
+		g_object_unref(reminder);
+		return 0;
+	}
 	
+	bacon_message_connection_set_callback(reminder->conn, 
+			(BaconMessageReceivedFunc)message_connection_receive_cb, reminder);
+
 	desktop_reminder_load_config(reminder, NULL);
 	if(!desktop_reminder_is_show(reminder))
 	{
-		gtk_main_quit();
+		bacon_message_connection_free(reminder->conn);
+		reminder->conn = NULL;
+		g_object_unref(reminder);
 		return 0;
 	}
 

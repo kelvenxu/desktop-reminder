@@ -37,7 +37,8 @@ modules_flags = -export_dynamic -avoid-version -module -no-undefined
 #	( $(GLIB_GENMARSHAL) --prefix=lmplayerplaylist_marshal $(srcdir)/lmplayerplaylist-marshal.list --header --body > lmplayerplaylist-marshal.c )
 
 desktop_reminder_preferences_SOURCES = 					\
-														main.c
+														main.c\
+														../src/bacon-message-connection.c ../src/bacon-message-connection.h
 
 desktop_reminder_preferences_CPPFLAGS = \
 	-I$(top_srcdir)/		\

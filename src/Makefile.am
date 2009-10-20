@@ -39,6 +39,7 @@ modules_flags = -export_dynamic -avoid-version -module -no-undefined
 desktop_reminder_SOURCES = 					\
 														desktop-reminder.c desktop-reminder.h\
 														main.c\
+														bacon-message-connection.c bacon-message-connection.h\
 														pixbuf_util.c pixbuf_util.h
 
 desktop_reminder_CPPFLAGS = \

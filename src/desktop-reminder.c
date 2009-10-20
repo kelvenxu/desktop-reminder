@@ -106,6 +106,8 @@ desktop_reminder_init (DesktopReminder *self)
 	priv->green = 255;
 	priv->blue = 255;
 	priv->is_show = TRUE;
+
+	self->conn = NULL;
 }
 
 static void
@@ -168,6 +170,8 @@ desktop_reminder_new()
 	gtk_container_add(GTK_CONTAINER(dr), priv->da);
 	gtk_widget_realize(priv->da);
 	gtk_widget_show(priv->da);
+
+	//desktop_reminder_load_config(dr, NULL);
 	desktop_reminder_display_message(dr, text);
 
 	g_signal_connect(G_OBJECT(dr), "destroy", G_CALLBACK(win_destroy_cb), NULL);
@@ -222,6 +226,9 @@ desktop_reminder_load_config(DesktopReminder *dr, const char *filename)
 	priv->green = g_key_file_get_integer(priv->key_file, "color", "green", NULL);
 	priv->blue = g_key_file_get_integer(priv->key_file, "color", "blue", NULL);
 
+	g_key_file_free(priv->key_file);
+	priv->key_file = NULL;
+
 	return TRUE;
 }
 
@@ -246,16 +253,21 @@ desktop_reminder_display_message(DesktopReminder *dr, const char *msg)
 	else
 		p = priv->msg;
 
+	// FIXME: Can't change color
 	pixbuf = pixbuf_render_text(priv->da, p, priv->point_size, priv->red, priv->green, priv->blue, &width, &height);
 
 	gtk_widget_set_size_request(priv->da, width, height);
 	gtk_widget_set_size_request(GTK_WIDGET(dr), width, height);
 
+	GdkGC *gc = gdk_gc_new(priv->da->window);
 	gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap, &mask, 100);
+	gdk_draw_drawable(priv->da->window, gc, pixmap, 0, 0, 0, 0, width, height);
 	gdk_window_shape_combine_mask(GTK_WIDGET(dr)->window, mask, 0, 0);
 
 	priv->width = width;
 	priv->height = height;
+
+	g_object_unref(gc);
 }
 
 gboolean 

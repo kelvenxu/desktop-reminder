@@ -27,6 +27,7 @@
 
 #include <glib-object.h>
 #include <gtk/gtk.h>
+#include "bacon-message-connection.h"
 
 G_BEGIN_DECLS
 
@@ -42,7 +43,7 @@ typedef struct _DesktopReminderPrivate DesktopReminderPrivate;
 typedef struct {
 	GtkWindow parent;
 
-
+	BaconMessageConnection *conn;
 	DesktopReminderPrivate *priv;
 } DesktopReminder;
 

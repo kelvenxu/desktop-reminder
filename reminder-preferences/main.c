@@ -27,6 +27,9 @@
 #include <glib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "../src/bacon-message-connection.h"
 
 typedef struct _ReminderPreferences
 {
@@ -39,6 +42,7 @@ typedef struct _ReminderPreferences
 	GtkWidget *text;
 	GKeyFile *key_file;
 	gchar *cfg;
+	BaconMessageConnection *conn;
 } ReminderPreferences;
 
 static char *
@@ -96,7 +100,8 @@ reminder_preferences_save_config(ReminderPreferences *rp)
 		FILE *fp = fopen(rp->cfg, "w");
 		if(fp)
 		{
-			size_t t = fwrite(p, 1, strlen(p), fp);
+			size_t t; 
+			t = fwrite(p, 1, strlen(p), fp);
 			fclose(fp);
 		}
 
@@ -131,9 +136,7 @@ font_set_cb(GtkFontButton *button, ReminderPreferences *rp)
 {
 	const gchar *font = gtk_font_button_get_font_name(button);
 
-	printf("font: %s\n", font);
 	g_key_file_set_string(rp->key_file, "default", "font", font);
-
 }
 
 static void
@@ -142,12 +145,9 @@ color_set_cb(GtkColorButton *button, ReminderPreferences *rp)
 	GdkColor color;
 	gtk_color_button_get_color(button, &color);
 
-	g_key_file_set_integer(rp->key_file, "color", "red", color.red);
-	g_key_file_set_integer(rp->key_file, "color", "green", color.green);
-	g_key_file_set_integer(rp->key_file, "color", "blue", color.blue);
-
-	printf("r: %d g: %d b: %d\n", color.red, color.green, color.blue);
-
+	g_key_file_set_integer(rp->key_file, "color", "red", (int)((float)color.red / 65535.0 * 256.0));
+	g_key_file_set_integer(rp->key_file, "color", "green", (int)((float)color.green / 65535.0 * 256.0));
+	g_key_file_set_integer(rp->key_file, "color", "blue", (int)((float)color.blue / 65535.0 * 256.0));
 }
 
 static void
@@ -156,14 +156,18 @@ display_toggled_cb(GtkToggleButton *button, ReminderPreferences *rp)
 	if(gtk_toggle_button_get_active(button))
 	{
 		g_key_file_set_boolean(rp->key_file, "default", "display", TRUE);
-		//TODO: display message
+
+		if(0 == fork())
+		{
+			execlp("desktop-reminder", "desktop-reminder", NULL);
+		}
 	}
 	else
 	{
 		g_key_file_set_boolean(rp->key_file, "default", "display", FALSE);
 		//TODO: Hide message
+		bacon_message_connection_send(rp->conn, "quit");
 	}
-
 }
 
 static void
@@ -192,7 +196,19 @@ update_ui_from_config(ReminderPreferences *rp)
 	color.red = g_key_file_get_integer(rp->key_file, "color", "red", &error);
 	color.green = g_key_file_get_integer(rp->key_file, "color", "green", &error);
 	color.blue = g_key_file_get_integer(rp->key_file, "color", "blue", &error);
+
+	color.red = (int)((float)color.red / 256.0 * 65535.0);
+	color.green = (int)((float)color.green / 256.0 * 65535.0);
+	color.blue = (int)((float)color.blue / 256.0 * 65535.0);
+
 	gtk_color_button_set_color(GTK_COLOR_BUTTON(rp->color), &color);
+}
+
+static gboolean 
+timer_cb(ReminderPreferences *rp)
+{
+	rp->conn = bacon_message_connection_new(GETTEXT_PACKAGE);
+	return FALSE;
 }
 
 int main(int argc, char *argv[])
@@ -243,6 +259,21 @@ int main(int argc, char *argv[])
 	update_ui_from_config(&rp);
 
 	gtk_widget_show(rp.dlg);
+	
+	rp.conn = bacon_message_connection_new(GETTEXT_PACKAGE);
+	if(bacon_message_connection_get_is_server(rp.conn))
+	{
+		printf("is server\n");
+		bacon_message_connection_free(rp.conn);
+		if(0 == fork())
+		{
+			//system("desktop-reminder", "desktop-reminder", NULL);
+			printf("execlp\n");
+			execlp("desktop-reminder", "desktop-reminder", NULL);
+			//execlp("desktop-reminder", NULL, NULL);
+		}
+		g_timeout_add_seconds(2, (GSourceFunc)timer_cb, &rp);
+	}
 
 	gtk_main();
 	return 0;
