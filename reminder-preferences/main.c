@@ -40,6 +40,8 @@ typedef struct _ReminderPreferences
 	GtkWidget *font;
 	GtkWidget *color;
 	GtkWidget *text;
+	GtkWidget *xposition;
+	GtkWidget *yposition;
 	GKeyFile *key_file;
 	gchar *cfg;
 	BaconMessageConnection *conn;
@@ -171,6 +173,28 @@ display_toggled_cb(GtkToggleButton *button, ReminderPreferences *rp)
 }
 
 static void
+x_change_value_cb(GtkSpinButton *button, ReminderPreferences *rp)
+{
+	char msg[64];
+	int x;
+	x = gtk_spin_button_get_value_as_int(button);
+	printf("x = %d\n", x);
+	sprintf(msg, "move_x %d", x);
+	bacon_message_connection_send(rp->conn, msg);
+}
+
+static void
+y_change_value_cb(GtkSpinButton *button, ReminderPreferences *rp)
+{
+	char msg[64];
+	int y;
+	y = gtk_spin_button_get_value_as_int(button);
+	printf("y = %d\n", y);
+	sprintf(msg, "move_y %d", y);
+	bacon_message_connection_send(rp->conn, msg);
+}
+
+static void
 update_ui_from_config(ReminderPreferences *rp)
 {
 	if(!rp)
@@ -240,12 +264,35 @@ int main(int argc, char *argv[])
 	rp.color = (GtkWidget*)gtk_builder_get_object(rp.builder, "colorbutton1");
 	rp.text = (GtkWidget*)gtk_builder_get_object(rp.builder, "textview1");
 	rp.display = (GtkWidget*)gtk_builder_get_object(rp.builder, "display-reminder");
+	rp.xposition = (GtkWidget*)gtk_builder_get_object(rp.builder, "position-x");
+	rp.yposition = (GtkWidget*)gtk_builder_get_object(rp.builder, "position-y");
+
 
 	g_signal_connect(G_OBJECT(rp.dlg), "destroy", G_CALLBACK(dlg_destroy_cb), &rp);
 	g_signal_connect(G_OBJECT(rp.close), "clicked", G_CALLBACK(close_clicked_cb), &rp);
 	g_signal_connect(G_OBJECT(rp.font), "font-set", G_CALLBACK(font_set_cb), &rp);
 	g_signal_connect(G_OBJECT(rp.color), "color-set", G_CALLBACK(color_set_cb), &rp);
 	g_signal_connect(G_OBJECT(rp.display), "toggled", G_CALLBACK(display_toggled_cb), &rp);
+
+	g_signal_connect(G_OBJECT(rp.xposition), "change-value", G_CALLBACK(x_change_value_cb), &rp);
+	g_signal_connect(G_OBJECT(rp.yposition), "change-value", G_CALLBACK(y_change_value_cb), &rp);
+
+	g_signal_connect(G_OBJECT(rp.xposition), "value-changed", G_CALLBACK(x_change_value_cb), &rp);
+	g_signal_connect(G_OBJECT(rp.yposition), "value-changed", G_CALLBACK(y_change_value_cb), &rp);
+
+	GdkScreen *screen = gdk_screen_get_default();
+	int width = gdk_screen_get_width(screen);
+	int height = gdk_screen_get_height(screen);
+	printf("width: %d height: %d\n", width, height);
+
+	GtkAdjustment *x_adj = (GtkAdjustment*)gtk_adjustment_new(width / 2, 0, width, 1.0, 5.0, 5.0);
+	GtkAdjustment *y_adj = (GtkAdjustment*)gtk_adjustment_new(height / 2, 0, height, 1.0, 5.0, 5.0);
+
+	gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(rp.xposition), x_adj);
+	gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(rp.yposition), y_adj);
+
+	//gtk_spin_button_set_range(GTK_SPIN_BUTTON(rp.xposition), 0.0, (gdouble)width);
+	//gtk_spin_button_set_range(GTK_SPIN_BUTTON(rp.yposition), 0.0, (gdouble)height);
 
 	rp.key_file = g_key_file_new();
 	rp.cfg = g_build_filename(g_getenv("HOME"), ".desktop-reminder/config", NULL);

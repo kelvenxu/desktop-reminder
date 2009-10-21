@@ -25,6 +25,7 @@
 #include "config.h"
 #include <gtk/gtk.h>
 #include <string.h>
+#include <stdlib.h>
 #include "desktop-reminder.h"
 #include "bacon-message-connection.h"
 
@@ -38,6 +39,16 @@ message_connection_receive_cb(const char *msg, DesktopReminder *dr)
 		dr->conn = NULL;
 		g_object_unref(dr);
 		gtk_main_quit();
+	}
+	else if(strncmp(msg, "move_x", 6) == 0)
+	{
+		int x = atoi(&(msg[6]));
+		desktop_reminder_move(dr, x, 200);
+	}
+	else if(strncmp(msg, "move_y", 6) == 0)
+	{
+		int y = atoi(&(msg[6]));
+		desktop_reminder_move(dr, 200, y);
 	}
 }
 
